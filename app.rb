@@ -85,15 +85,25 @@ end
 
 #profile_page 
 get('/profile') do
-    slim(:profile)
+    db = SQLite3::Database.new("db/goodgames.db")
+    db.results_as_hash = true
+    profile_info = db.execute("SELECT * FROM user WHERE username = ?", session[:username]).first
+    reviews = db.execute("SELECT * FROM review WHERE username = ?", session[:username])
+    slim(:profile, locals:{profile_info:profile_info, reviews:reviews})
+end
+
+get('/create_pw') do
+    slim(:create_admin_pw)
 end
 
 #add review
 post('/finished_r') do
     db = SQLite3::Database.new("db/goodgames.db")
+    db.execute("UPDATE user SET games_reviewed = games_reviewed + 1 WHERE username = ?", session[:username])
     game_name=params[:game_name]
     if params[:finished_yes]
         finished = 1
+        db.execute("UPDATE user SET games_played = games_played + 1 WHERE username = ?", session[:username])
     else
         finished = 0
     end
@@ -101,9 +111,8 @@ post('/finished_r') do
     hrs_played = params[:hrs_played]
     review = params[:review_text]
     review_date = Date.today.to_s
-    user_id = db.execute("SELECT id FROM user WHERE username = ?", session[:username])
     game_id = db.execute("SELECT id FROM game WHERE name = ?", game_name)
-    db.execute("INSERT INTO review (rating, user_id, comments, review_date, game_id, finished) VALUES (?,?,?,?,?,?)",rating, user_id, review, review_date, game_id, finished)
+    db.execute("INSERT INTO review (rating, username, comments, review_date, game_id, finished) VALUES (?,?,?,?,?,?)",rating, session[:username], review, review_date, game_id, finished)
     redirect('/')
 end
 
@@ -210,4 +219,12 @@ post('/addinggame') do
         db.execute("INSERT INTO genre_relation (game_id, genre_id) VALUES (?,?)",last_id,genre3)
     end
     redirect('/')
+end
+
+post("/create_pw") do
+    db = SQLite3::Database.new("db/goodgames.db")
+    password = params[:password]
+    encrypted_password = BCrypt::Password.create(password)
+    db.execute("INSERT INTO admin_password (password) VALUES (?)", encrypted_password)
+    redirect("/")
 end
