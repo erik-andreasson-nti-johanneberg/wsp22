@@ -1,0 +1,44 @@
+h2 Add a game 
+form action='addinggame' method='POST' enctype="multipart/form-data"
+    h2 Name of the game
+    input type="text" name="game_name" placeholder="Name of the game"
+    br
+    br
+    h1 Upload Image
+    input type="file" name="image"
+    br
+    br
+    h2 Release date
+    label for="release-date" 
+    input type="date" id="release-date" name="release_date"
+    br
+    br
+    h2 Who published the game?
+    select name="publisher"
+        - names.each do |name|
+            option = value=(name["name"])
+    br
+    br
+    h2 Select genres (Maximum of three, at least one)
+    select name="genre1"
+        - genres.each do |genre|
+            option = value=(genre["name"])
+    br
+    br
+    select name="genre2"
+        <option hidden disabled selected value> -- select an option -- </option>
+        - genres.each do |genre|
+            option = value=(genre["name"])
+    br
+    br
+    select name="genre3"
+        <option hidden disabled selected value> -- select an option -- </option>
+        - genres.each do |genre|
+            option = value=(genre["name"])
+    br
+    br
+    label for="hrs_played" How many hours to complete?
+    input type="number" id="hrs_to_complete" name="hrs_to_complete"
+    br
+    br
+    input type="submit" value="Add game"

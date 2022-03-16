@@ -1,0 +1,39 @@
+nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items:center;
+}
+
+.game_tiles {
+    display: flex;
+    flex-direction: row;
+    justify-content:left;
+}
+
+.game_tile {
+    width: auto;
+    height: 275px;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+}
+
+.game_tile img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+    height: 250px;
+}
+
+.game_tile form {
+    display: block;
+    text-align: center;
+}
+
+.game_page_article img {
+    width: auto;
+    height: 400px;
+}
+

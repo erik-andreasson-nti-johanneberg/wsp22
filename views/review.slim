@@ -1,0 +1,30 @@
+h2 #{game_info["name"]}
+- if session[:username] != nil
+    article class="game_page_article"
+        img src="#{game_info["image_file_name"]}"
+        form action="finished_r" method="POST"
+            input type="hidden" name="game_name" value="#{game_info["name"]}"
+            h2 Finished the game?
+            input type="radio" id="yes" name="finished_yes" value="Yes"
+            label for="yes" Yes
+            br
+            input type="radio" id="no" name="finished_no" value="No"
+            label for="no" No
+            br
+            br
+            label for="hrs_played" How many hours did you play?
+            input type="number" id="hrs_played" name="hrs_played"
+            br
+            br
+            h2 Rating out of 10
+            select name="rating"
+                - (0..10).each do |i|
+                    option = value=(i)
+            h2 Your review:
+            textarea name="review_text" rows="4" cols="50" Write your review here
+            br
+            br
+            input type="submit" value="Submit review"
+- else 
+    h3 You must be logged in to place a review! 
+    a href="/login" Go to login page
