@@ -1,4 +1,6 @@
 h2 #{session[:username]}
+form action="logout" method='POST' 
+    input type="submit" name="logout" value="logout"
 h3 Games Finished: #{profile_info["games_played"]}
 h3 Games reviewed: #{profile_info["games_reviewed"]}
 h3 Hours played: placeholder

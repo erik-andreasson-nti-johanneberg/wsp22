@@ -50,12 +50,18 @@ get('/addgame') do
     db.results_as_hash = true
     publisher_names = db.execute("SELECT name FROM publisher")
     genres = db.execute("SELECT name FROM genre")
-    slim(:addgame, locals:{names:publisher_names, genres:genres})
+    admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
+    games = db.execute("SELECT name FROM game")
+    slim(:addgame, locals:{names:publisher_names, genres:genres, admin:admin, games:games})
 end
 
 #add publisher page
 get('/addpublisher') do
-    slim(:addpublisher)
+    db = SQLite3::Database.new("db/goodgames.db")
+    db.results_as_hash = true
+    admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
+    publishers = db.execute("SELECT name FROM publisher")
+    slim(:addpublisher, locals:{admin:admin, publishers:publishers})
 end
 
 #game page when taken from button
@@ -140,12 +146,19 @@ post('/account_creation') do
     email = params[:email]
     admin_passkey = params[:admin_passkey]
     date = Date.today.to_s
-    p date 
+    result = db.execute("SELECT password FROM admin_password").first
+    pw_digest = result["password"]
 
     if password == password_confirm
-        encrypted_password = BCrypt::Password.create(password)
-        db.execute("INSERT INTO user (username, email, age, account_age, games_played, games_reviewed, password) VALUES (?,?,?,?,?,?,?)", username, email, age, date, 0, 0, encrypted_password)
-        redirect('/')
+        if BCrypt::Password.new(pw_digest) == admin_passkey
+            encrypted_password = BCrypt::Password.create(password)
+            db.execute("INSERT INTO user (username, email, age, account_age, games_played, games_reviewed, password, admin) VALUES (?,?,?,?,?,?,?,?)", username, email, age, date, 0, 0, encrypted_password, 1)
+            redirect('/')
+        else
+            encrypted_password = BCrypt::Password.create(password)
+            db.execute("INSERT INTO user (username, email, age, account_age, games_played, games_reviewed, password, admin) VALUES (?,?,?,?,?,?,?,?)", username, email, age, date, 0, 0, encrypted_password, 0)
+            redirect('/')
+        end
     else
       redirect('/error')
     end
@@ -227,4 +240,21 @@ post("/create_pw") do
     encrypted_password = BCrypt::Password.create(password)
     db.execute("INSERT INTO admin_password (password) VALUES (?)", encrypted_password)
     redirect("/")
+end
+
+post("/logout") do
+    session.destroy
+    redirect("/")
+end
+
+post('/removegame') do
+    db = SQLite3::Database.new("db/goodgames.db")
+    db.execute("DELETE FROM game WHERE name = ?", params[:game])
+    redirect('/')
+end
+
+post('/removepublisher') do
+    db = SQLite3::Database.new("db/goodgames.db")
+    db.execute("DELETE FROM publisher WHERE name = ?", params[:publisher])
+    redirect('/')
 end
