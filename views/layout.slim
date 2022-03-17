@@ -10,10 +10,9 @@ html lang="en"
         h1 GoodGames
         nav 
             a href='/' Home 
-            a href='/popular' Popular Now 
-            a href='/login' Login
-            a href='/addgame' Add Or Remove Game
-            a href='/addpublisher' Add Or Remove Publisher
-            a href='/profile' Profile: #{session[:username]}
+            a href='/users/login' Login
+            a href='/games/new' Add Or Remove Game
+            a href='/publishers/new' Add Or Remove Publisher
+            a href='/users/index' Profile: #{session[:username]}
 
     == yield

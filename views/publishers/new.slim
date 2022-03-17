@@ -1,6 +1,6 @@
 h2 Add a publisher 
 - if session[:username] != nil and admin["admin"] == 1
-    form action='addingpublisher' method='POST'
+    form action='publishers/new' method='POST'
         h2 Name of the publisher
         input type="text" name="publisher_name" placeholder="Name of the publisher"
         br
@@ -18,11 +18,11 @@ h2 Add a publisher
         input type="date" id="active-since" name="active_since"
         input type="submit" value="Add Publisher"
     h2 Remove a publisher 
-    form action="removepublisher" method="POST"
+    form action="publishers/delete" method="POST"
         select name="publisher"
             - publishers.each do |publisher|
                 option = value=(publisher["name"])
         input type="submit" value="Remove Publisher"
 - else 
     h3 You must be logged in as admin to add a publisher! 
-    a href="/login" Go to login page
+    a href="/users/login" Go to login page

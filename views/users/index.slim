@@ -1,0 +1,22 @@
+- if session[:username] != nil
+    h2 #{session[:username]}
+    form action="/users/logout" method='POST' 
+        input type="submit" name="logout" value="logout"
+    h3 Games Finished: #{profile_info["games_played"]}
+    h3 Games reviewed: #{profile_info["games_reviewed"]}
+    h3 Hours played: placeholder
+    h3 Reviews:
+    section class="reviews"
+        - reviews.each do |review|
+            article
+                p Username: #{review["username"]}
+                p Review Date: #{review["review_date"]}
+                - if review["finished"] == 1
+                    p Finished the game: Yes 
+                - else 
+                    p Finished the game: No
+                p Rating: #{review["rating"]}
+                p Review: #{review["comments"]}
+- else 
+    h3 You must be logged in to place a review! 
+    a href="/users/login" Go to login page

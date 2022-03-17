@@ -3,6 +3,7 @@ require 'slim'
 require 'sqlite3'
 require 'bcrypt'
 require 'date'
+require_relative './model.rb'
 
 genres = ['Action', 'Shooter', 'Battle Royale', 'Stealth', 'Fighting', 'Survival', 'Rythm', 'Horror', 'Adventure', 'Puzzle', 'Action RPG', 'MMORPG', 'Roguelike', 'Tactical RPG', 'JRPG', 'Simulation', 'Strategy', 'MOBA', 'RTS', 'RTT', 'Tower Defense', 'TBS', 'TBT', 'Sports', 'Racing', 'MMO', 'Casual', 'Idle', 'Social Deduction']
 
@@ -16,67 +17,80 @@ get('/') do
     racing_games = db.execute("SELECT * FROM game WHERE id IN (SELECT game_id FROM genre_relation WHERE genre_id = 24)")
     p action_games
     p racing_games
-    slim(:home, locals:{action_games:action_games, racing_games:racing_games})
+    slim(:index, locals:{action_games:action_games, racing_games:racing_games})
 end
 
 #login page
-get('/login') do
-    slim(:login)
+get('/users/login') do
+    slim(:"users/login")
 end
 
 #create an account page
-get('/create_account') do
-    slim(:create_account)
+get('/users/new') do
+    slim(:"users/new")
 end
 
-#Games page
-get('/popular') do
-    slim(:games)
-end
+# #Games page
+# get('/popular') do
+#     slim(:games)
+# end
 
 #Review page
-get('/review') do
+get('/games/review') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     game_name = params[:game_name]
     p game_name
     game_info = db.execute("SELECT * FROM game WHERE name = ?",game_name).first
-    slim(:review, locals:{game_info:game_info})
+    slim(:"games/review", locals:{game_info:game_info})
 end
 
 #add game page
-get('/addgame') do
+get('/games/new') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     publisher_names = db.execute("SELECT name FROM publisher")
     genres = db.execute("SELECT name FROM genre")
     admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
     games = db.execute("SELECT name FROM game")
-    slim(:addgame, locals:{names:publisher_names, genres:genres, admin:admin, games:games})
+    slim(:"games/new", locals:{names:publisher_names, genres:genres, admin:admin, games:games})
 end
 
 #add publisher page
-get('/addpublisher') do
+get('/publishers/new') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
     publishers = db.execute("SELECT name FROM publisher")
-    slim(:addpublisher, locals:{admin:admin, publishers:publishers})
+    slim(:"publishers/new", locals:{admin:admin, publishers:publishers})
 end
 
 #game page when taken from button
-get('/go_to_game_page') do
+get('/games/index') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     game_name = params[:game_name]
     game_id = db.execute("SELECT id FROM game WHERE name=?", game_name).first
-    p game_id
     game_id = game_id["id"]
-    p game_id
     publisher_name = db.execute("SELECT name FROM publisher WHERE id IN (SELECT publisher_id FROM game WHERE name = ?)",game_name).first
     game_info = db.execute("SELECT * FROM game WHERE name = ?",game_name).first
     reviews = db.execute("SELECT * FROM review WHERE game_id = ?", game_id)
-    slim(:game_page, locals:{publisher_name:publisher_name, game_info:game_info, reviews:reviews})
+    total_rating = 0.0
+    ratings = db.execute("SELECT rating FROM review")
+    p ratings
+    ratings.each do |rating|
+        p rating
+        rating = rating["rating"]
+        rating = rating.to_f
+        total_rating += rating
+    end
+    p ratings.length()
+    rating_average = total_rating/(ratings.length())
+    rating_average = rating_average.round(0).to_s
+    p rating_average
+    ra = rating_average
+    p ra
+    slim(:"games/index", locals:{publisher_name:publisher_name, game_info:game_info, reviews:reviews, ra:ra})
 end
 
 #error page
@@ -84,26 +98,26 @@ get('/error') do
     slim(:error)
 end
 
-#add image test
-get('/addimage') do
-    slim(:add_image_test)
-end
+# #add image test
+# get('/addimage') do
+#     slim(:add_image_test)
+# end
 
 #profile_page 
-get('/profile') do
+get('/users/index') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     profile_info = db.execute("SELECT * FROM user WHERE username = ?", session[:username]).first
     reviews = db.execute("SELECT * FROM review WHERE username = ?", session[:username])
-    slim(:profile, locals:{profile_info:profile_info, reviews:reviews})
+    slim(:"users/index", locals:{profile_info:profile_info, reviews:reviews})
 end
 
-get('/create_pw') do
-    slim(:create_admin_pw)
-end
+# get('/create_pw') do
+#     slim(:create_admin_pw)
+# end
 
 #add review
-post('/finished_r') do
+post('/games/review') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.execute("UPDATE user SET games_reviewed = games_reviewed + 1 WHERE username = ?", session[:username])
     game_name=params[:game_name]
@@ -123,20 +137,20 @@ post('/finished_r') do
 end
 
 
-#add_image_test
-post('/adding_image_test') do
-    if params[:image] && params[:image][:filename]
-        filename = params[:image][:filename]
-        file = params[:image][:tempfile]
-        path = "./public/uploads/#{filename}"
-        File.open(path, 'w') do |f|
-            f.write(file.read)
-        end
-    end
-end
+# #add_image_test
+# post('/adding_image_test') do
+#     if params[:image] && params[:image][:filename]
+#         filename = params[:image][:filename]
+#         file = params[:image][:tempfile]
+#         path = "./public/uploads/#{filename}"
+#         File.open(path, 'w') do |f|
+#             f.write(file.read)
+#         end
+#     end
+# end
 
 #account creation
-post('/account_creation') do
+post('/users/new') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     username = params[:username]
@@ -165,7 +179,7 @@ post('/account_creation') do
 end
 
 #account login
-post('/login') do
+post('/users/login') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     username = params[:username]
@@ -183,7 +197,7 @@ post('/login') do
     end
 end
 
-post('/addingpublisher') do
+post('/publishers/new') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     publisher_name = params[:publisher_name]
@@ -194,7 +208,7 @@ post('/addingpublisher') do
     redirect('/')
 end
 
-post('/addinggame') do
+post('/games') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.results_as_hash = true
     #image form
@@ -234,26 +248,26 @@ post('/addinggame') do
     redirect('/')
 end
 
-post("/create_pw") do
-    db = SQLite3::Database.new("db/goodgames.db")
-    password = params[:password]
-    encrypted_password = BCrypt::Password.create(password)
-    db.execute("INSERT INTO admin_password (password) VALUES (?)", encrypted_password)
-    redirect("/")
-end
+# post("/create_pw") do
+#     db = SQLite3::Database.new("db/goodgames.db")
+#     password = params[:password]
+#     encrypted_password = BCrypt::Password.create(password)
+#     db.execute("INSERT INTO admin_password (password) VALUES (?)", encrypted_password)
+#     redirect("/")
+# end
 
-post("/logout") do
+post("/users/logout") do
     session.destroy
     redirect("/")
 end
 
-post('/removegame') do
+post('/games/delete') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.execute("DELETE FROM game WHERE name = ?", params[:game])
     redirect('/')
 end
 
-post('/removepublisher') do
+post('/publishers/delete') do
     db = SQLite3::Database.new("db/goodgames.db")
     db.execute("DELETE FROM publisher WHERE name = ?", params[:publisher])
     redirect('/')
