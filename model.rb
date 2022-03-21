@@ -56,10 +56,15 @@ end
 def profile_page(db)
     profile_info = db.execute("SELECT * FROM user WHERE username = ?", session[:username]).first
     reviews = db.execute("SELECT * FROM review WHERE username = ?", session[:username])
-    return [profile_info, reviews]
+    hrs_played_hash = db.execute("SELECT hrs_played FROM review WHERE username = ?", session[:username])
+    hours = 0
+    hrs_played_hash.each do |hrs|
+        hours += hrs["hrs_played"].to_i
+    end
+    return [profile_info, reviews, hours]
 end
 
-def add_review(db, finished_q, game_name, rating, review, review_date)
+def add_review(db, finished_q, game_name, rating, review, review_date, hrs_played)
     db.execute("UPDATE user SET games_reviewed = games_reviewed + 1 WHERE username = ?", session[:username])
     if finished_q
         finished = 1
@@ -68,7 +73,7 @@ def add_review(db, finished_q, game_name, rating, review, review_date)
         finished = 0
     end
     game_id = db.execute("SELECT id FROM game WHERE name = ?", game_name)
-    db.execute("INSERT INTO review (rating, username, comments, review_date, game_id, finished) VALUES (?,?,?,?,?,?)",rating, session[:username], review, review_date, game_id, finished)
+    db.execute("INSERT INTO review (rating, username, comments, review_date, game_id, finished, hrs_played) VALUES (?,?,?,?,?,?,?)",rating, session[:username], review, review_date, game_id, finished, hrs_played)
 end
 
 def account_creation(db, password, password_confirm, username, email, age, date, admin_passkey)

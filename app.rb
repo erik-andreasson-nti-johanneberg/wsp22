@@ -91,7 +91,7 @@ end
 get('/users/index') do
     db = connect_to_db_with_hash()
     profile_page = profile_page(db)
-    slim(:"users/index", locals:{profile_info:profile_page[0], reviews:profile_page[1]})
+    slim(:"users/index", locals:{profile_info:profile_page[0], reviews:profile_page[1], hrs_played:profile_page[2].to_s})
 end
 
 # get('/create_pw') do
@@ -114,7 +114,7 @@ post('/games/review') do
     hrs_played = params[:hrs_played]
     review = params[:review_text]
     review_date = Date.today.to_s
-    add_review(db, finished_q, game_name, rating, review, review_date)
+    add_review(db, finished_q, game_name, rating, review, review_date, hrs_played)
     redirect('/')
 end
 
