@@ -53,3 +53,19 @@ nav {
     overflow-wrap: break-word;
 }
 
+.publishers {
+    display: flex;
+    flex-direction: row;
+    justify-content:left;
+    gap: 10px
+}
+
+.publishers article {
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    height: 150px;
+    width: 400px;
+    overflow-wrap: break-word;
+}
+

@@ -2,7 +2,7 @@ h2 #{game_info["name"]}
 - if session[:username] != nil
     article class="game_page_article"
         img src="#{game_info["image_file_name"]}"
-        form action="games/review" method="POST"
+        form action="/games/review" method="POST"
             input type="hidden" name="game_name" value="#{game_info["name"]}"
             h2 Finished the game?
             input type="radio" id="yes" name="finished_yes" value="Yes"

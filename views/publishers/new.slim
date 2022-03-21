@@ -1,6 +1,6 @@
 h2 Add a publisher 
 - if session[:username] != nil and admin["admin"] == 1
-    form action='publishers/new' method='POST'
+    form action='/publishers/new' method='POST'
         h2 Name of the publisher
         input type="text" name="publisher_name" placeholder="Name of the publisher"
         br

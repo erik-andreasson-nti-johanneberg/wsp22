@@ -1,0 +1,8 @@
+h2 Publishers: 
+section class="publishers"
+    - publisher_info.each do |publisher|
+        article 
+            p Name: #{publisher["name"]}
+            p Adress: #{publisher["adress"]}
+            p Phone Number: #{publisher["phone_number"]}
+            p Active Since: #{publisher["active_since"]}

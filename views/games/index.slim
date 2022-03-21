@@ -1,18 +1,14 @@
 h2 #{game_info["name"]}
 article class="game_page_article"
-    - p ra
     img src="#{game_info["image_file_name"]}"
     p Publisher: #{publisher_name["name"]}
     p Average Rating: #{ra}
     h3 Reviews: 
-    form action="games/review" method='GET' 
+    form action="/games/review" method='GET' 
         input type="hidden" name="game_name" value="#{game_info["name"]}"
         input type="submit" name="button" value="Place a review of this game"
     section class="reviews"
-        - p "here is reviews"
-        - p reviews
         - reviews.each do |review|
-            - p review
             article
                 p Username: #{review["username"]}
                 p Review Date: #{review["review_date"]}
