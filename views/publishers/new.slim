@@ -18,7 +18,7 @@ h2 Add a publisher
         input type="date" id="active-since" name="active_since"
         input type="submit" value="Add Publisher"
     h2 Remove a publisher 
-    form action="publishers/delete" method="POST"
+    form action="/publishers/delete" method="POST"
         select name="publisher"
             - publishers.each do |publisher|
                 option = value=(publisher["name"])

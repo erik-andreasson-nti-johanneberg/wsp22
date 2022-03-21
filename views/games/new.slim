@@ -44,7 +44,7 @@ h2 Add a game
         br
         input type="submit" value="Add game"
     h2 Remove A Game 
-        form action="games/delete" method="POST"
+        form action="/games/delete" method="POST"
             select name="game"
                 - games.each do |game|
                     option = value=(game["name"])

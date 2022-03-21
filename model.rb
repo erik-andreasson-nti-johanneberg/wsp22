@@ -37,15 +37,22 @@ def game_page(db, game_name)
     game_id = db.execute("SELECT id FROM game WHERE name=?", game_name).first
     game_id = game_id["id"]
     publisher_name = db.execute("SELECT name FROM publisher WHERE id IN (SELECT publisher_id FROM game WHERE name = ?)",game_name).first
-    if publisher_name != db.execute("SELECT publisher_name FROM game WHERE publisher_name = ?", publisher_name["name"])
-        publisher_name = db.execute("SELECT name FROM publisher WHERE name IN (SELECT publisher_name FROM game WHERE id = ?)", game_id).first
-        new_id = db.execute("SELECT id FROM publisher WHERE name = ?", publisher_name["name"]).first
-        db.execute("UPDATE game SET publisher_id = ? WHERE publisher_name = ?",new_id['id'], publisher_name["name"])
-        publisher_name = db.execute("SELECT name FROM publisher WHERE id IN (SELECT publisher_id FROM game WHERE name = ?)",game_name).first
+    if publisher_name != db.execute("SELECT publisher_name FROM game WHERE publisher_name = ?", game_name)
     end
-    game_info = db.execute("SELECT * FROM game WHERE name = ?",game_name).first
-    reviews = db.execute("SELECT * FROM review WHERE game_id = ?", game_id)
-    ratings = db.execute("SELECT rating FROM review WHERE game_id = ?", game_id)
+    begin 
+        if publisher_name != db.execute("SELECT publisher_name FROM game WHERE name = ?", game_name)
+            publisher_name = db.execute("SELECT name FROM publisher WHERE name IN (SELECT publisher_name FROM game WHERE id = ?)", game_id).first
+            new_id = db.execute("SELECT id FROM publisher WHERE name = ?", publisher_name["name"]).first
+            db.execute("UPDATE game SET publisher_id = ? WHERE publisher_name = ?",new_id['id'], publisher_name["name"])
+            publisher_name = db.execute("SELECT name FROM publisher WHERE id IN (SELECT publisher_id FROM game WHERE name = ?)",game_name).first
+        end
+    rescue
+        publisher_name = {"name"=>"Not found or deleted"}
+    ensure
+        game_info = db.execute("SELECT * FROM game WHERE name = ?",game_name).first
+        reviews = db.execute("SELECT * FROM review WHERE game_id = ?", game_id)
+        ratings = db.execute("SELECT rating FROM review WHERE game_id = ?", game_id)
+    end
     return [publisher_name, game_info, reviews, ratings]
 end
 

@@ -203,13 +203,13 @@ end
 post('/games/delete') do
     game_name = params[:game]
     db = connect_to_db_no_hash()
-    delete_game()
+    delete_game(db, game_name)
     redirect('/')
 end
 
 post('/publishers/delete') do
     publisher_name = params[:publisher]
     db = connect_to_db_no_hash()
-    delete_publisher()
+    delete_publisher(db, publisher_name)
     redirect('/')
 end
