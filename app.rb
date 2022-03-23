@@ -9,6 +9,22 @@ genres = ['Action', 'Shooter', 'Battle Royale', 'Stealth', 'Fighting', 'Survival
 
 enable :sessions
 
+def numbers_only_query(input)
+    return input.scan(/\D/).empty?
+end
+
+def email_query(input)
+    return input.include?("@")
+end
+
+get('/error_only_num') do
+    slim(:error_only_num)
+end
+
+get('/error_only_email') do
+    slim(:error_only_email)
+end
+
 #Homepage
 get('/') do
     db = connect_to_db_with_hash()
@@ -111,7 +127,15 @@ post('/games/review') do
     game_name=params[:game_name]
     finished_q = params[:finished_yes]
     rating = params[:rating]
+    if numbers_only_query(rating)
+    else
+        redirect('/error_only_num')
+    end
     hrs_played = params[:hrs_played]
+    if numbers_only_query(hrs_played)
+    else
+        redirect('/error_only_num')
+    end
     review = params[:review_text]
     review_date = Date.today.to_s
     add_review(db, finished_q, game_name, rating, review, review_date, hrs_played)
@@ -138,7 +162,15 @@ post('/users/new') do
     password = params[:password]
     password_confirm = params[:password_confirm]
     age = params[:age]
+    if numbers_only_query(age)
+    else
+        redirect('/error_only_num')
+    end
     email = params[:email]
+    if email_query(email)
+    else
+        redirect('/error_only_email')
+    end
     admin_passkey = params[:admin_passkey]
     date = Date.today.to_s
     account_creation(db, password, password_confirm, username, email, age, date, admin_passkey)
@@ -158,6 +190,10 @@ post('/publishers/new') do
     publisher_name = params[:publisher_name]
     publisher_address = params[:publisher_address]
     publisher_phone_number = params[:publisher_phone_number]
+    if numbers_only_query(publisher_phone_number)
+    else
+        redirect('/error_only_num')
+    end
     active_since = params[:active_since]
     add_publisher_post(db, publisher_name, publisher_address, publisher_phone_number, active_since)
     redirect('/')
@@ -182,6 +218,10 @@ post('/games/new') do
     game_name = params[:game_name]
     release_date = params[:release_date]
     hrs_to_complete = params[:hrs_to_complete].to_i
+    if numbers_only_query(hrs_to_complete)
+    else
+        redirect('/error_only_num')
+    end
     publisher = params[:publisher]
     add_game_post(db, publisher, id, game_name, release_date, hrs_to_complete, path, genre1, genre2, genre3)
     redirect('/')
