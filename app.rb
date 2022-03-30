@@ -9,73 +9,90 @@ genres = ['Action', 'Shooter', 'Battle Royale', 'Stealth', 'Fighting', 'Survival
 
 enable :sessions
 
+include Model
+
+# Checks if input contains only numbers
+#
 def numbers_only_query(input)
     return input.scan(/\D/).empty?
 end
 
+# Checks if input contains an @ symbol
+#
 def email_query(input)
     return input.include?("@")
 end
 
+# Error page if input contained letters instead of numbers
+#
 get('/error_only_num') do
     slim(:error_only_num)
 end
 
+# Error page if input did not contain an @ symbol
+#
 get('/error_only_email') do
     slim(:error_only_email)
 end
 
-#Homepage
+# Homepage
+#
+# @see Model#home_page_games
 get('/') do
     db = connect_to_db_with_hash()
     home_page_games = home_page_games(db)
     slim(:index, locals:{action_games:home_page_games[0], racing_games:home_page_games[1]})
 end
 
-#login page
+# login page
+#
 get('/users/login') do
     slim(:"users/login")
 end
 
-#create an account page
+# create an account page
+#
 get('/users/new') do
     slim(:"users/new")
 end
 
-# #Games page
-# get('/popular') do
-#     slim(:games)
-# end
-
-#Review page
+# Review page
+#
+# @param [String] :game_name, The name of the game
+# @see Model#all_game_info
 get('/games/review') do
     db = connect_to_db_with_hash()
     game_name = params[:game_name]
     game_info = all_game_info(db, game_name)
-    p game_info
     slim(:"games/review", locals:{game_info:game_info})
 end
 
-#add game page
+# Add game page
+#
+# @see Model#add_game
 get('/games/new') do
     db = connect_to_db_with_hash()
     add_game = add_game(db)
     slim(:"games/new", locals:{names:add_game[0], genres:add_game[1], admin:add_game[2], games:add_game[3]})
 end
 
-#add publisher page
+# add publisher page
+#
+# @see Model#add_publisher
 get('/publishers/new') do
     db = connect_to_db_with_hash()
     add_publisher = add_publisher(db)
     slim(:"publishers/new", locals:{admin:add_publisher[0], publishers:add_publisher[1]})
 end
 
-#game page when taken from button
+# Game page when taken from button on home page
+#
+# @param [String] :game_name, The name of the game
+# @see Model#game_page
 get('/games/index') do
     db = connect_to_db_with_hash()
     game_name = params[:game_name]
     game_page = game_page(db, game_name)
-    p game_page
     ratings = game_page[3]
     total_rating = 0.0
     if ratings[0] == nil
@@ -93,28 +110,25 @@ get('/games/index') do
     slim(:"games/index", locals:{publisher_name:game_page[0], game_info:game_page[1], reviews:game_page[2], ra:ra})
 end
 
-#error page
+# Error page
+#
 get('/error') do
     slim(:error)
 end
 
-# #add image test
-# get('/addimage') do
-#     slim(:add_image_test)
-# end
-
-#profile_page 
+# Profile_page
+#
+# @see Model#profile_page 
 get('/users/index') do
     db = connect_to_db_with_hash()
     profile_page = profile_page(db)
     slim(:"users/index", locals:{profile_info:profile_page[0], reviews:profile_page[1], hrs_played:profile_page[2].to_s})
 end
 
-# get('/create_pw') do
-#     slim(:create_admin_pw)
-# end
 
 # show publishers
+# 
+# @see Model#show_publishers
 get('/publishers/index') do
     db = connect_to_db_with_hash()
     show_publishers = show_publishers(db)
@@ -122,6 +136,13 @@ get('/publishers/index') do
 end
 
 #add review
+#
+# @param [String] :game_name, The name of the game
+# @param [Integer] :finished_yes, 1 or 0 where 1 is finsihed the game and 0 is did not finish the game
+# @param [Integer] :rating, Integer from 0 to 10 representing the rating the user gave the game
+# @param [Integer] :hrs_played, Number of hours the user played the game
+# @param [String] :review_text, The actual review text
+# @see Model#add_review
 post('/games/review') do
     db = connect_to_db_no_hash()
     game_name=params[:game_name]
@@ -142,20 +163,12 @@ post('/games/review') do
     redirect('/')
 end
 
-
-# #add_image_test
-# post('/adding_image_test') do
-#     if params[:image] && params[:image][:filename]
-#         filename = params[:image][:filename]
-#         file = params[:image][:tempfile]
-#         path = "./public/uploads/#{filename}"
-#         File.open(path, 'w') do |f|
-#             f.write(file.read)
-#         end
-#     end
-# end
-
-#account creation
+# Account creation
+#
+# @param [String] :username, Username of the new user
+# @param [String] :password, Password of the new user
+# @param [String] :password_confirm, Confirmation of the password of the new user
+# @see Model#account_creation
 post('/users/new') do
     db = connect_to_db_with_hash()
     username = params[:username]
@@ -176,7 +189,11 @@ post('/users/new') do
     account_creation(db, password, password_confirm, username, email, age, date, admin_passkey)
 end
 
-#account login
+# Account login
+#
+# @param [String] :username, Username of the user logging in
+# @param [String] :password, Password of the user logging in
+# @see Model#account_login
 post('/users/login') do
     db = connect_to_db_with_hash()
     username = params[:username]
@@ -184,7 +201,13 @@ post('/users/login') do
     account_login(db, username, password)
 end
 
-# add publisher post
+# Add publisher
+#
+# @param [String] :publisher_name, Name of the publisher to be added
+# @param [String] :publisher_address, Adress of the publisher to be added
+# @param [Integer] :publisher_phone_number, Phone number of the publisher to be added
+# @param [String] :active_since, Date when the publisher to be added was founded
+# @see Model#add_publisher_post
 post('/publishers/new') do
     db = connect_to_db_with_hash()
     publisher_name = params[:publisher_name]
@@ -199,7 +222,17 @@ post('/publishers/new') do
     redirect('/')
 end
 
-# add game post
+# Add game
+# @param [String] :image, :filename, filename of the image to be uploaded
+# @param [String] :image, :tempfile, File to be uploaded
+# @param [String] :genre1, The first genre that the game is attributed to
+# @param [String] :genre2, The second genre that the game is attributed to
+# @param [String] :genre3, The third genre that the game is attrubuted to
+# @param [String] :game_name, The name of the game to be added
+# @param [String] :release_date, The date the game to be addded was released
+# @param [Integer] :hrs_to_complete, Number of hours the game to be added usually takes to complete
+# @param [String] :publisher, The publisher of the game to be added
+# @see Model#add_game_post
 post('/games/new') do
     db = connect_to_db_with_hash()
     #image form
@@ -235,11 +268,16 @@ end
 #     redirect("/")
 # end
 
+# Logout a user
+#
 post("/users/logout") do
     session.destroy
     redirect("/")
 end
 
+# Delete a game
+#
+# @see Model#delete_game
 post('/games/delete') do
     game_name = params[:game]
     db = connect_to_db_no_hash()
@@ -247,6 +285,9 @@ post('/games/delete') do
     redirect('/')
 end
 
+# Delete a publisher
+#
+# @see Model#delete_publisher
 post('/publishers/delete') do
     publisher_name = params[:publisher]
     db = connect_to_db_no_hash()
