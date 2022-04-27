@@ -35,6 +35,18 @@ get('/error_only_email') do
     slim(:error_only_email)
 end
 
+# Error page if user attempts login more than 3 times in a short interval
+#
+get('/error_login_attempts') do
+    slim(:error_login_attempts)
+end
+
+# Error page if attempting to add a game or publisher to db if not admin
+#
+get('/must_be_admin') do
+    slim(:must_be_admin)
+end
+
 # Homepage
 #
 # @see Model#home_page_games
@@ -46,8 +58,8 @@ end
 
 # login page
 #
-get('/users/login') do
-    slim(:"users/login")
+get('/login') do
+    slim(:"/login")
 end
 
 # create an account page
@@ -60,11 +72,11 @@ end
 #
 # @param [String] :game_name, The name of the game
 # @see Model#all_game_info
-get('/games/review') do
+get('/review/new') do
     db = connect_to_db_with_hash()
     game_name = params[:game_name]
     game_info = all_game_info(db, game_name)
-    slim(:"games/review", locals:{game_info:game_info})
+    slim(:"reviews/new", locals:{game_info:game_info})
 end
 
 # Add game page
@@ -72,7 +84,7 @@ end
 # @see Model#add_game
 get('/games/new') do
     db = connect_to_db_with_hash()
-    add_game = add_game(db)
+    add_game = add_game(db, session[:id])
     slim(:"games/new", locals:{names:add_game[0], genres:add_game[1], admin:add_game[2], games:add_game[3]})
 end
 
@@ -81,7 +93,7 @@ end
 # @see Model#add_publisher
 get('/publishers/new') do
     db = connect_to_db_with_hash()
-    add_publisher = add_publisher(db)
+    add_publisher = add_publisher(db, session[:id])
     slim(:"publishers/new", locals:{admin:add_publisher[0], publishers:add_publisher[1]})
 end
 
@@ -89,7 +101,7 @@ end
 #
 # @param [String] :game_name, The name of the game
 # @see Model#game_page
-get('/games/index') do
+get('/games') do
     db = connect_to_db_with_hash()
     game_name = params[:game_name]
     game_page = game_page(db, game_name)
@@ -119,9 +131,9 @@ end
 # Profile_page
 #
 # @see Model#profile_page 
-get('/users/index') do
+get('/users') do
     db = connect_to_db_with_hash()
-    profile_page = profile_page(db)
+    profile_page = profile_page(db, session[:username])
     slim(:"users/index", locals:{profile_info:profile_page[0], reviews:profile_page[1], hrs_played:profile_page[2].to_s})
 end
 
@@ -129,7 +141,7 @@ end
 # show publishers
 # 
 # @see Model#show_publishers
-get('/publishers/index') do
+get('/publishers') do
     db = connect_to_db_with_hash()
     show_publishers = show_publishers(db)
     slim(:"publishers/index", locals:{publisher_info:show_publishers})
@@ -143,7 +155,7 @@ end
 # @param [Integer] :hrs_played, Number of hours the user played the game
 # @param [String] :review_text, The actual review text
 # @see Model#add_review
-post('/games/review') do
+post('/review') do
     db = connect_to_db_no_hash()
     game_name=params[:game_name]
     finished_q = params[:finished_yes]
@@ -159,7 +171,7 @@ post('/games/review') do
     end
     review = params[:review_text]
     review_date = Date.today.to_s
-    add_review(db, finished_q, game_name, rating, review, review_date, hrs_played)
+    add_review(db, finished_q, game_name, rating, review, review_date, hrs_played, session[:username])
     redirect('/')
 end
 
@@ -169,7 +181,7 @@ end
 # @param [String] :password, Password of the new user
 # @param [String] :password_confirm, Confirmation of the password of the new user
 # @see Model#account_creation
-post('/users/new') do
+post('/users') do
     db = connect_to_db_with_hash()
     username = params[:username]
     password = params[:password]
@@ -186,7 +198,12 @@ post('/users/new') do
     end
     admin_passkey = params[:admin_passkey]
     date = Date.today.to_s
-    account_creation(db, password, password_confirm, username, email, age, date, admin_passkey)
+    error = account_creation(db, password, password_confirm, username, email, age, date, admin_passkey)
+    if error
+        redirect('/error')
+    else
+        redirect('/')
+    end
 end
 
 # Account login
@@ -194,11 +211,37 @@ end
 # @param [String] :username, Username of the user logging in
 # @param [String] :password, Password of the user logging in
 # @see Model#account_login
-post('/users/login') do
+post('/login') do
     db = connect_to_db_with_hash()
     username = params[:username]
     password = params[:password]
-    account_login(db, username, password)
+    if session[:num_logins] == nil
+        session[:num_logins] = 0
+    end
+    if session[:time_prev_attempt] == nil
+        session[:time_prev_attempt] = Time.now.to_i
+    end
+    if Time.new.to_i - session[:time_prev_attempt] > 180
+        session[:num_logins] = 0 
+    end
+    session[:time_prev_attempt] = Time.new.to_i
+
+    if session[:num_logins] > 3
+        redirect("/error_login_attempts")
+    end
+    error = account_login(db, username, password)
+    if error[0]
+        session[:num_logins] += 1
+        session[:loginError] = 'Wrong username or password'
+        redirect('/login')
+    else
+        session[:username] = username
+        session[:id] = error[1]
+        if error[2] == 1
+            session[:admin] = 1
+        end
+        redirect('/')
+    end
 end
 
 # Add publisher
@@ -208,18 +251,22 @@ end
 # @param [Integer] :publisher_phone_number, Phone number of the publisher to be added
 # @param [String] :active_since, Date when the publisher to be added was founded
 # @see Model#add_publisher_post
-post('/publishers/new') do
-    db = connect_to_db_with_hash()
-    publisher_name = params[:publisher_name]
-    publisher_address = params[:publisher_address]
-    publisher_phone_number = params[:publisher_phone_number]
-    if numbers_only_query(publisher_phone_number)
+post('/publishers') do
+    if session[:admin] == 1
+        db = connect_to_db_with_hash()
+        publisher_name = params[:publisher_name]
+        publisher_address = params[:publisher_address]
+        publisher_phone_number = params[:publisher_phone_number]
+        if numbers_only_query(publisher_phone_number)
+        else
+            redirect('/error_only_num')
+        end
+        active_since = params[:active_since]
+        add_publisher_post(db, publisher_name, publisher_address, publisher_phone_number, active_since, session[:username])
+        redirect('/')
     else
-        redirect('/error_only_num')
+        redirect('/must_be_admin')
     end
-    active_since = params[:active_since]
-    add_publisher_post(db, publisher_name, publisher_address, publisher_phone_number, active_since)
-    redirect('/')
 end
 
 # Add game
@@ -233,31 +280,38 @@ end
 # @param [Integer] :hrs_to_complete, Number of hours the game to be added usually takes to complete
 # @param [String] :publisher, The publisher of the game to be added
 # @see Model#add_game_post
-post('/games/new') do
-    db = connect_to_db_with_hash()
-    #image form
-    # Check if user uploaded a file
-    filename = params[:image][:filename]
-    file = params[:image][:tempfile]
-    path = "../uploads/#{filename}"
-    path_file_write = "./public/uploads/#{filename}"
-    File.open(path_file_write, 'w') do |f|
-        f.write(file.read)
-    end
-    #params
-    genre1 = params[:genre1]
-    genre2 = params[:genre2]
-    genre3 = params[:genre3]
-    game_name = params[:game_name]
-    release_date = params[:release_date]
-    hrs_to_complete = params[:hrs_to_complete].to_i
-    if numbers_only_query(hrs_to_complete)
+post('/games') do
+    if sesson[:admin] == 1
+        db = connect_to_db_with_hash()
+        #image form
+        # Check if user uploaded a file
+        filename = params[:image][:filename]
+        file = params[:image][:tempfile]
+        path = "../uploads/#{filename}"
+        path_file_write = "./public/uploads/#{filename}"
+        File.open(path_file_write, 'w') do |f|
+            f.write(file.read)
+        end
+        #params
+        genre1 = params[:genre1]
+        genre2 = params[:genre2]
+        genre3 = params[:genre3]
+        game_name = params[:game_name]
+        release_date = params[:release_date]
+        hrs_to_complete = params[:hrs_to_complete].to_i
+        if numbers_only_query(hrs_to_complete)
+        else
+            redirect('/error_only_num')
+        end
+        publisher = params[:publisher]
+        error = add_game_post(db, publisher, id, game_name, release_date, hrs_to_complete, path, genre1, genre2, genre3, session[:username])
+        if error
+            redirect('/error')
+        end
+        redirect('/')
     else
-        redirect('/error_only_num')
+        redirect('/must_be_admin')
     end
-    publisher = params[:publisher]
-    add_game_post(db, publisher, id, game_name, release_date, hrs_to_complete, path, genre1, genre2, genre3)
-    redirect('/')
 end
 
 # post("/create_pw") do
@@ -270,7 +324,7 @@ end
 
 # Logout a user
 #
-post("/users/logout") do
+post("/logout") do
     session.destroy
     redirect("/")
 end
@@ -279,18 +333,26 @@ end
 #
 # @see Model#delete_game
 post('/games/delete') do
-    game_name = params[:game]
-    db = connect_to_db_no_hash()
-    delete_game(db, game_name)
-    redirect('/')
+    if session[:admin] == 1
+        game_name = params[:game]
+        db = connect_to_db_no_hash()
+        delete_game(db, game_name)
+        redirect('/')
+    else
+        redirect('/must_be_admin')
+    end
 end
 
 # Delete a publisher
 #
 # @see Model#delete_publisher
 post('/publishers/delete') do
-    publisher_name = params[:publisher]
-    db = connect_to_db_no_hash()
-    delete_publisher(db, publisher_name)
-    redirect('/')
+    if session[:admin] == 1
+        publisher_name = params[:publisher]
+        db = connect_to_db_no_hash()
+        delete_publisher(db, publisher_name)
+        redirect('/')
+    else
+        redirect('must_be_admin')
+    end
 end

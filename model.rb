@@ -42,10 +42,10 @@ module Model
     #   * [Hash] All available genre names
     #   * [Hash] Admin control number
     #   * [Hash] All available game names
-    def add_game(db)
+    def add_game(db, id)
         publisher_names = db.execute("SELECT name FROM publisher")
         genres = db.execute("SELECT name FROM genre")
-        admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
+        admin = db.execute("SELECT admin FROM user WHERE id = ?", id).first
         games = db.execute("SELECT name FROM game")
         return [publisher_names, genres, admin, games]
     end
@@ -55,8 +55,8 @@ module Model
     # @return [Array] 
     #   * [Hash] Admin control number
     #   * [Hash] All available publisher names
-    def add_publisher(db)
-        admin = db.execute("SELECT admin FROM user WHERE id = ?", session[:id]).first
+    def add_publisher(db, id)
+        admin = db.execute("SELECT admin FROM user WHERE id = ?", id).first
         publishers = db.execute("SELECT name FROM publisher")
         return [admin, publishers]
     end
@@ -104,10 +104,10 @@ module Model
     #   * [Hash] Information from the database pertaining to the logged in user
     #   * [Hash] Information for all the reviews that the logged in user has published
     #   * [Integer] The number of hours the logged in user has played games they have reviewed 
-    def profile_page(db)
-        profile_info = db.execute("SELECT * FROM user WHERE username = ?", session[:username]).first
-        reviews = db.execute("SELECT * FROM review WHERE username = ?", session[:username])
-        hrs_played_hash = db.execute("SELECT hrs_played FROM review WHERE username = ?", session[:username])
+    def profile_page(db, username)
+        profile_info = db.execute("SELECT * FROM user WHERE username = ?", username).first
+        reviews = db.execute("SELECT * FROM review WHERE username = ?", username)
+        hrs_played_hash = db.execute("SELECT hrs_played FROM review WHERE username = ?", username)
         hours = 0
         hrs_played_hash.each do |hrs|
             hours += hrs["hrs_played"].to_i
@@ -117,16 +117,16 @@ module Model
 
     # Inserts a review into the database
     #
-    def add_review(db, finished_q, game_name, rating, review, review_date, hrs_played)
-        db.execute("UPDATE user SET games_reviewed = games_reviewed + 1 WHERE username = ?", session[:username])
+    def add_review(db, finished_q, game_name, rating, review, review_date, hrs_played, username)
+        db.execute("UPDATE user SET games_reviewed = games_reviewed + 1 WHERE username = ?", username)
         if finished_q
             finished = 1
-            db.execute("UPDATE user SET games_played = games_played + 1 WHERE username = ?", session[:username])
+            db.execute("UPDATE user SET games_played = games_played + 1 WHERE username = ?", username)
         else
             finished = 0
         end
         game_id = db.execute("SELECT id FROM game WHERE name = ?", game_name)
-        db.execute("INSERT INTO review (rating, username, comments, review_date, game_id, finished, hrs_played) VALUES (?,?,?,?,?,?,?)",rating, session[:username], review, review_date, game_id, finished, hrs_played)
+        db.execute("INSERT INTO review (rating, username, comments, review_date, game_id, finished, hrs_played) VALUES (?,?,?,?,?,?,?)",rating, username, review, review_date, game_id, finished, hrs_played)
     end
 
     # Attempts to create an account and add it into the database
@@ -142,17 +142,17 @@ module Model
                 if BCrypt::Password.new(pw_digest) == admin_passkey
                     encrypted_password = BCrypt::Password.create(password)
                     db.execute("INSERT INTO user (username, email, age, account_age, games_played, games_reviewed, password, admin) VALUES (?,?,?,?,?,?,?,?)", username, email, age, date, 0, 0, encrypted_password, 1)
-                    redirect('/')
+                    return false
                 else
                     encrypted_password = BCrypt::Password.create(password)
                     db.execute("INSERT INTO user (username, email, age, account_age, games_played, games_reviewed, password, admin) VALUES (?,?,?,?,?,?,?,?)", username, email, age, date, 0, 0, encrypted_password, 0)
-                    redirect('/')
+                    return false
                 end
             else
-                redirect('/error')
+                return true
             end
         else
-            redirect('/error')
+            return true
         end
     end
 
@@ -162,32 +162,34 @@ module Model
     # Redirects to error page if username entered password does not match existing password
     def account_login(db, username, password)
         result = db.execute("SELECT * FROM user WHERE username = ?", username).first
+        if result == nil
+            return [true,0]
+        end
         pwdigest = result["password"]
         id = result["id"]
+        admin = result["admin"]
         if BCrypt::Password.new(pwdigest) == password
-            session[:id] = id
-            session[:username] = username
-            redirect('/')
+            return [false,id,admin]
         else
-            redirect('/error')
+            return [true,0,admin]
         end
     end
 
     # Adds a publisher to the database
     #
-    def add_publisher_post(db, publisher_name, publisher_address, publisher_phone_number, active_since)
-        db.execute("INSERT INTO publisher (name, adress, phone_number, active_since) VALUES (?,?,?,?)",publisher_name,publisher_address,publisher_phone_number,active_since)
+    def add_publisher_post(db, publisher_name, publisher_address, publisher_phone_number, active_since, username)
+        db.execute("INSERT INTO publisher (name, adress, phone_number, active_since, username) VALUES (?,?,?,?,?)",publisher_name,publisher_address,publisher_phone_number,active_since,username)
     end
 
     # Adds a game to the database
     #
     # Redirect to error page if game already exists in the database
-    def add_game_post(db, publisher, id, game_name, release_date, hrs_to_complete, path, genre1, genre2, genre3)
+    def add_game_post(db, publisher, id, game_name, release_date, hrs_to_complete, path, genre1, genre2, genre3, username)
         publisher_id = db.execute("SELECT id FROM publisher WHERE name = ?",publisher).first["id"].to_i
         if db.execute("SELECT COUNT(1) FROM game WHERE name = ?", game_name).first["COUNT(1)"] < 1
-            db.execute("INSERT INTO game (publisher_id, name,release_date, hrs_to_complete, image_file_name, publisher_name) VALUES (?,?,?,?,?,?)",publisher_id,game_name,release_date,hrs_to_complete,path, publisher)
+            db.execute("INSERT INTO game (publisher_id, name,release_date, hrs_to_complete, image_file_name, publisher_name, username) VALUES (?,?,?,?,?,?,?)",publisher_id,game_name,release_date,hrs_to_complete,path, publisher, usernmae)
         else 
-            redirect('/error')
+            return true
         end
         last_id = db.last_insert_row_id()
         genre1 = db.execute("SELECT id FROM genre WHERE name = ?",genre1).first["id"].to_i

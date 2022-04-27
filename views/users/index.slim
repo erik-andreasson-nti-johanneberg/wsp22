@@ -1,6 +1,6 @@
 - if session[:username] != nil
     h2 #{session[:username]}
-    form action="/users/logout" method='POST' 
+    form action="/logout" method='POST' 
         input type="submit" name="logout" value="logout"
     h3 Email: #{profile_info["email"]}
     h3 Age: #{profile_info["age"]}
@@ -22,4 +22,4 @@
                 p Review: #{review["comments"]}
 - else 
     h3 You must be logged in to view your profile! 
-    a href="/users/login" Go to login page
+    a href="/login" Go to login page

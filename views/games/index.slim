@@ -4,7 +4,7 @@ article class="game_page_article"
     p Publisher: #{publisher_name["name"]}
     p Average Rating: #{ra}
     h3 Reviews: 
-    form action="/games/review" method='GET' 
+    form action="/review/new" method='GET' 
         input type="hidden" name="game_name" value="#{game_info["name"]}"
         input type="submit" name="button" value="Place a review of this game"
     section class="reviews"

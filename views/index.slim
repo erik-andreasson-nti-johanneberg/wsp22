@@ -5,12 +5,12 @@ section class="game_tiles"
     - action_games.each do |game|
         article class="game_tile"
             img src="#{game["image_file_name"]}"
-            form action="games/index" method='GET' 
+            form action="games" method='GET' 
                 input type="submit" name="game_name" value="#{game["name"]}"
 h2 Racing
 section class="game_tiles"
     - racing_games.each do |game|
         article class="game_tile"
             img src="#{game["image_file_name"]}"
-            form action="games/index" method='GET' 
+            form action="games" method='GET' 
                 input type="submit" name="game_name" value="#{game["name"]}"
